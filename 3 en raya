@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3 en Raya</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 50px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #tablero {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+    }
+
+    .celda {
+      background-color: #fff;
+      border: 2px solid #333;
+      font-size: 2.5rem;
+      text-align: center;
+      line-height: 100px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .celda:hover {
+      background-color: #e0e0e0;
+    }
+
+    #estado {
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>3 en Raya</h1>
+  <div id="tablero"></div>
+  <div id="estado">Turno del jugador X</div>
+  <button onclick="reiniciarJuego()">Reiniciar</button>
+
+  <script>
+    const tablero = document.getElementById('tablero');
+    const estado = document.getElementById('estado');
+    let celdas = Array(9).fill(null);
+    let turno = 'X';
+    let juegoActivo = true;
+
+    function crearTablero() {
+      tablero.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const celda = document.createElement('div');
+        celda.classList.add('celda');
+        celda.dataset.index = i;
+        celda.addEventListener('click', manejarClick);
+        tablero.appendChild(celda);
+      }
+    }
+
+    function manejarClick(e) {
+      const index = e.target.dataset.index;
+
+      if (!juegoActivo || celdas[index]) return;
+
+      celdas[index] = turno;
+      e.target.textContent = turno;
+
+      if (verificarGanador()) {
+        estado.textContent = `¡Ganó el jugador ${turno}!`;
+        juegoActivo = false;
+        return;
+      }
+
+      if (celdas.every(cell => cell !== null)) {
+        estado.textContent = '¡Empate!';
+        juegoActivo = false;
+        return;
+      }
+
+      turno = turno === 'X' ? 'O' : 'X';
+      estado.textContent = `Turno del jugador ${turno}`;
+    }
+
+    function verificarGanador() {
+      const combinaciones = [
+        [0,1,2],[3,4,5],[6,7,8], // filas
+        [0,3,6],[1,4,7],[2,5,8], // columnas
+        [0,4,8],[2,4,6]          // diagonales
+      ];
+
+      return combinaciones.some(combinacion => {
+        const [a, b, c] = combinacion;
+        return celdas[a] && celdas[a] === celdas[b] && celdas[a] === celdas[c];
+      });
+    }
+
+    function reiniciarJuego() {
+      celdas = Array(9).fill(null);
+      turno = 'X';
+      juegoActivo = true;
+      estado.textContent = `Turno del jugador ${turno}`;
+      crearTablero();
+    }
+
+    crearTablero();
+  </script>
+</body>
+</html>
