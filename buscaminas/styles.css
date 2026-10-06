@@ -1,0 +1,173 @@
+/* Estilos del buscaminas, con la misma estética oscura que el resto del índice */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #1e1e2e;
+  color: #eee;
+  margin: 0;
+  padding: 30px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+h1 {
+  margin: 0 0 4px;
+}
+
+.subtitulo {
+  color: #8fa9ff;
+  font-size: .9rem;
+  margin-top: 0;
+  text-align: center;
+}
+
+.controles {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 10px 0 16px;
+  color: #aaa;
+}
+
+.controles select,
+.controles button {
+  background: #2a2a3d;
+  color: #eee;
+  border: 1px solid #3a3a52;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: .95rem;
+  cursor: pointer;
+}
+
+.controles button:hover,
+.cara:hover {
+  border-color: #6c8cff;
+}
+
+/* Marcadores tipo buscaminas de toda la vida */
+.marcadores {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: #12121c;
+  border: 2px solid #3a3a52;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 14px;
+}
+
+.marcador {
+  font-family: "Courier New", monospace;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #ef4444;
+  background: #000;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 2px;
+}
+
+.cara {
+  font-size: 1.6rem;
+  background: #2a2a3d;
+  border: 1px solid #3a3a52;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 2px 8px;
+  line-height: 1.4;
+}
+
+/* Tablero */
+.tablero {
+  display: grid;
+  grid-template-columns: repeat(var(--columnas, 9), 30px);
+  gap: 3px;
+  background: #12121c;
+  padding: 10px;
+  border: 2px solid #3a3a52;
+  border-radius: 8px;
+  user-select: none;
+}
+
+.celda {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  color: #eee;
+  background: #4b4b66;
+  border: 1px solid #5d5d7d;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s;
+}
+
+.celda:hover {
+  background: #5d5d80;
+}
+
+/* Casilla ya descubierta */
+.celda.abierta {
+  background: #26263a;
+  border-color: #2f2f47;
+  cursor: default;
+  font-size: .95rem;
+}
+
+.celda.abierta:hover {
+  background: #26263a;
+}
+
+.celda.mina {
+  background: #7f1d1d;
+  border-color: #ef4444;
+}
+
+.estado {
+  min-height: 1.4em;
+  color: #aaa;
+  margin-top: 16px;
+}
+
+.ayuda {
+  color: #777;
+  font-size: .85rem;
+  margin-top: 4px;
+}
+
+.volver a {
+  color: #8fa9ff;
+  text-decoration: none;
+  margin-top: 14px;
+}
+
+.volver a:hover {
+  text-decoration: underline;
+}
+
+/* En pantallas estrechas hacemos el tablero un poco más compacto */
+@media (max-width: 700px) {
+  .tablero {
+    grid-template-columns: repeat(var(--columnas, 9), 24px);
+  }
+
+  .celda {
+    width: 24px;
+    height: 24px;
+    font-size: .85rem;
+  }
+}

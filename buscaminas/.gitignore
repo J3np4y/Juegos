@@ -1,0 +1,5 @@
+# Cosas de Maven que no interesa subir
+target/
+
+# Caché del compilador de TeaVM
+teavm-cache/

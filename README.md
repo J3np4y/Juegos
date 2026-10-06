@@ -13,7 +13,7 @@ Repositorio de juegos clásicos escritos a mano, sin frameworks ni librerías ex
 | Juego de la Vida | [`juego_de_vida/`](juego_de_vida/) | 🔨 Próximamente |
 | Tetris | [`tetris/`](tetris/) | 🔨 Próximamente |
 | Pong | [`pong/`](pong/) | 🔨 Próximamente |
-| Buscaminas | [`buscaminas/`](buscaminas/) | 🔨 Próximamente |
+| Buscaminas | [`buscaminas/`](buscaminas/) | ✅ Disponible |
 
 ## Estructura
 

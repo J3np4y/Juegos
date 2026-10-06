@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Proyecto del buscaminas.
+
+  La idea es tener la lógica del juego escrita en Java y compilarla a
+  JavaScript con TeaVM, así el juego puede ejecutarse desde GitHub Pages
+  (que solo sirve archivos estáticos) sin necesidad de servidor.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>es.uva</groupId>
+    <artifactId>buscaminas</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Buscaminas</name>
+    <description>Buscaminas con la lógica en Java compilada a JavaScript para GitHub Pages</description>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <teavm.version>0.15.0</teavm.version>
+        <junit.version>5.11.4</junit.version>
+    </properties>
+
+    <dependencies>
+        <!-- Anotaciones de TeaVM (@JSExport, @JSBody). Solo hacen falta
+             en tiempo de compilación, por eso el scope "provided". -->
+        <dependency>
+            <groupId>org.teavm</groupId>
+            <artifactId>teavm-jso</artifactId>
+            <version>${teavm.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Implementación de la API de Java (java.util, java.lang...)
+             que TeaVM traduce a JavaScript. También solo en compilación. -->
+        <dependency>
+            <groupId>org.teavm</groupId>
+            <artifactId>teavm-classlib</artifactId>
+            <version>${teavm.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Tests de la lógica del juego -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+
+            <!-- El plugin que traduce las clases Java a un único fichero .js
+                 que se carga desde el index.html -->
+            <plugin>
+                <groupId>org.teavm</groupId>
+                <artifactId>teavm-maven-plugin</artifactId>
+                <version>${teavm.version}</version>
+                <executions>
+                    <execution>
+                        <id>compilar-logica-a-javascript</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Clase con los métodos marcados con @JSExport -->
+                            <mainClass>es.uva.buscaminas.web.ApiWeb</mainClass>
+                            <!-- Sacamos el .js en la raíz de la carpeta del juego
+                                 para que Pages lo sirva junto al index.html -->
+                            <targetDirectory>${project.basedir}</targetDirectory>
+                            <targetFileName>buscaminas.js</targetFileName>
+                            <!-- Salida sin módulos, para poder llamar a las
+                                 funciones exportadas directamente desde el HTML -->
+                            <jsModuleType>NONE</jsModuleType>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

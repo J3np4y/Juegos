@@ -3,19 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Buscaminas — Próximamente</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#1e1e2e; color:#eee;
-           display:flex; flex-direction:column; align-items:center;
-           justify-content:center; min-height:100vh; margin:0; text-align:center; }
-    h1 { margin-bottom:8px; }
-    p { color:#aaa; }
-    a { color:#8fa9ff; }
-  </style>
+  <title>Buscaminas — Juegos</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Buscaminas</h1>
-  <p>Este juego todavía no está terminado.</p>
-  <p><a href="../">← Volver al índice de juegos</a></p>
+  <header class="cabecera">
+    <h1>💣 Buscaminas</h1>
+    <p class="subtitulo">Lógica en Java · vista en HTML · compilado con TeaVM</p>
+  </header>
+
+  <section class="controles">
+    <label for="dificultad">Dificultad:</label>
+    <select id="dificultad">
+      <option value="FACIL">Fácil (9×9, 10 minas)</option>
+      <option value="MEDIO">Medio (16×16, 40 minas)</option>
+      <option value="DIFICIL">Difícil (16×30, 99 minas)</option>
+    </select>
+    <button id="btn-nueva" type="button">Nueva partida</button>
+  </section>
+
+  <!-- Marcadores estilo buscaminas clásico -->
+  <section class="marcadores">
+    <span class="marcador" id="minas-restantes" title="Minas por marcar">💣 010</span>
+    <button class="cara" id="btn-cara" type="button" title="Reiniciar partida">🙂</button>
+    <span class="marcador" id="cronometro" title="Tiempo de partida">⏱ 000</span>
+  </section>
+
+  <!-- El tablero lo pinta app.js con los datos que devuelve Java -->
+  <main id="tablero" class="tablero" aria-label="Tablero de buscaminas"></main>
+
+  <p class="estado" id="mensaje" role="status">Cargando la lógica Java...</p>
+
+  <p class="ayuda">Clic izquierdo: descubrir · Clic derecho: bandera 🚩</p>
+
+  <p class="volver"><a href="../">← Volver al índice de juegos</a></p>
+
+  <!-- Primero se carga el juego compilado desde Java,
+       después la vista que lo maneja -->
+  <script src="buscaminas.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
