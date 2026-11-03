@@ -1,21 +1,178 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Serpiente — Próximamente</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1e1e2e">
+  <title>Serpiente — Juegos</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#1e1e2e; color:#eee;
-           display:flex; flex-direction:column; align-items:center;
-           justify-content:center; min-height:100vh; margin:0; text-align:center; }
-    h1 { margin-bottom:8px; }
-    p { color:#aaa; }
-    a { color:#8fa9ff; }
+    :root { color-scheme: dark; font-family: Arial, sans-serif; background: #1e1e2e; color: #eee; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 28px 16px; display: flex; flex-direction: column; align-items: center; }
+    h1 { margin: 0 0 6px; }
+    p { color: #aaa; text-align: center; }
+    .marcador { display: flex; gap: 24px; color: #aaa; margin: 12px 0; }
+    .marcador strong { color: #eee; font-size: 1.2rem; }
+    canvas { width: min(90vw, 420px); height: auto; aspect-ratio: 1; background: #11111b; border: 2px solid #494966; border-radius: 8px; }
+    .acciones, .direcciones { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+    button { min-width: 46px; border: 1px solid #565674; border-radius: 7px; background: #30304a; color: #eee; padding: 10px 14px; font-size: 1rem; cursor: pointer; touch-action: manipulation; }
+    button:hover { border-color: #9aaeff; }
+    button:focus-visible, a:focus-visible { outline: 3px solid #9aaeff; outline-offset: 2px; }
+    #estado { min-height: 1.4em; }
+    .direcciones { max-width: 190px; }
+    .direcciones button { min-width: 52px; }
+    .volver { margin-top: 18px; } a { color: #9aaeff; }
   </style>
 </head>
 <body>
   <h1>Serpiente</h1>
-  <p>Este juego todavía no está terminado.</p>
-  <p><a href="../">← Volver al índice de juegos</a></p>
+  <p>Come la fruta para crecer; evita los bordes y no te muerdas la cola.</p>
+  <div class="marcador" aria-label="Marcadores">
+    <span>Puntos: <strong id="puntos">0</strong></span>
+    <span>Récord: <strong id="record">0</strong></span>
+  </div>
+  <canvas id="tablero" width="420" height="420" aria-label="Tablero de Serpiente"></canvas>
+  <p id="estado" role="status" aria-live="polite">Pulsa Iniciar o una flecha para empezar.</p>
+  <div class="acciones">
+    <button id="iniciar" type="button">Iniciar / continuar</button>
+    <button id="pausar" type="button">Pausar</button>
+    <button id="reiniciar" type="button">Nueva partida</button>
+  </div>
+  <div class="direcciones" aria-label="Controles táctiles">
+    <span></span><button data-dir="arriba" type="button" aria-label="Arriba">↑</button><span></span>
+    <button data-dir="izquierda" type="button" aria-label="Izquierda">←</button>
+    <button data-dir="abajo" type="button" aria-label="Abajo">↓</button>
+    <button data-dir="derecha" type="button" aria-label="Derecha">→</button>
+  </div>
+  <p>Controles: flechas o WASD · P para pausar.</p>
+  <p class="volver"><a href="../">← Volver al índice de juegos</a></p>
+  <script>
+    (() => {
+      const canvas = document.getElementById('tablero');
+      const ctx = canvas.getContext('2d');
+      const celdas = 21, size = canvas.width / celdas;
+      const direcciones = {
+        arriba: { x: 0, y: -1 }, abajo: { x: 0, y: 1 },
+        izquierda: { x: -1, y: 0 }, derecha: { x: 1, y: 0 }
+      };
+      let serpiente, fruta, direccion, siguienteDireccion, puntos = 0;
+      let jugando = false, terminado = false, ultimo = 0, acumulado = 0, cuentaAtras = 0;
+      let record = 0;
+      try { record = Number(localStorage.getItem('serpiente-record')) || 0; } catch (_) { /* El juego sigue sin almacenamiento. */ }
+      document.getElementById('record').textContent = record;
+      const estado = document.getElementById('estado');
+      function ponerFruta() {
+        const libres = [];
+        for (let y = 0; y < celdas; y++) for (let x = 0; x < celdas; x++) {
+          if (!serpiente.some((parte) => parte.x === x && parte.y === y)) libres.push({ x, y });
+        }
+        fruta = libres.length ? libres[Math.floor(Math.random() * libres.length)] : null;
+      }
+      function dibujar() {
+        ctx.fillStyle = '#11111b';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#242438';
+        for (let i = 0; i <= celdas; i++) {
+          ctx.beginPath(); ctx.moveTo(i * size, 0); ctx.lineTo(i * size, canvas.height); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, i * size); ctx.lineTo(canvas.width, i * size); ctx.stroke();
+        }
+        if (fruta) {
+          ctx.fillStyle = '#fb7185';
+          ctx.beginPath(); ctx.arc((fruta.x + .5) * size, (fruta.y + .5) * size, size * .36, 0, Math.PI * 2); ctx.fill();
+        }
+        serpiente.forEach((parte, indice) => {
+          ctx.fillStyle = indice === 0 ? '#a3e635' : '#65a30d';
+          ctx.fillRect(parte.x * size + 1, parte.y * size + 1, size - 2, size - 2);
+        });
+      }
+      function mover() {
+        direccion = siguienteDireccion;
+        const cabeza = { x: serpiente[0].x + direccion.x, y: serpiente[0].y + direccion.y };
+        const come = fruta && cabeza.x === fruta.x && cabeza.y === fruta.y;
+        const cuerpo = come ? serpiente : serpiente.slice(0, -1);
+        if (cabeza.x < 0 || cabeza.x >= celdas || cabeza.y < 0 || cabeza.y >= celdas
+          || cuerpo.some((parte) => parte.x === cabeza.x && parte.y === cabeza.y)) {
+          jugando = false; terminado = true;
+          estado.textContent = `¡Fin de la partida! Puntuación: ${puntos}. Pulsa Nueva partida para intentarlo otra vez.`;
+          return;
+        }
+        serpiente.unshift(cabeza);
+        if (come) {
+          puntos++;
+          document.getElementById('puntos').textContent = puntos;
+          if (puntos > record) {
+            record = puntos;
+            document.getElementById('record').textContent = record;
+            try { localStorage.setItem('serpiente-record', String(record)); } catch (_) { /* El récord solo persiste si el navegador lo permite. */ }
+          }
+          ponerFruta();
+          if (!fruta) {
+            jugando = false; terminado = true;
+            estado.textContent = '¡Has llenado el tablero! ¡Victoria!';
+          }
+        } else serpiente.pop();
+        dibujar();
+      }
+      function bucle(tiempo = 0) {
+        const delta = Math.min(tiempo - ultimo, 100);
+        ultimo = tiempo;
+        if (jugando) {
+          if (cuentaAtras > 0) {
+            cuentaAtras -= delta;
+            if (cuentaAtras <= 0) estado.textContent = 'En juego.';
+          } else {
+            acumulado += delta;
+            if (acumulado >= 115) { mover(); acumulado = 0; }
+          }
+        }
+        requestAnimationFrame(bucle);
+      }
+      function iniciar() {
+        if (terminado || jugando) return;
+        jugando = true;
+        cuentaAtras = 1200;
+        estado.textContent = '¡Prepárate!';
+      }
+      function reiniciar() {
+        serpiente = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+        direccion = direcciones.derecha;
+        siguienteDireccion = direccion;
+        puntos = 0; acumulado = 0; terminado = false;
+        document.getElementById('puntos').textContent = puntos;
+        ponerFruta(); dibujar(); iniciar();
+      }
+      function cambiarDireccion(nombre) {
+        const nueva = direcciones[nombre];
+        if (!nueva || (nueva.x + direccion.x === 0 && nueva.y + direccion.y === 0)) return;
+        siguienteDireccion = nueva;
+        iniciar();
+      }
+      const teclas = {
+        ArrowUp: 'arriba', w: 'arriba', ArrowDown: 'abajo', s: 'abajo',
+        ArrowLeft: 'izquierda', a: 'izquierda', ArrowRight: 'derecha', d: 'derecha'
+      };
+      document.addEventListener('keydown', (evento) => {
+        if (evento.key.toLowerCase() === 'p') {
+          jugando = !jugando;
+          if (!terminado) estado.textContent = jugando ? 'En juego.' : 'Partida en pausa.';
+          return;
+        }
+        const nombre = teclas[evento.key] || teclas[evento.key.toLowerCase()];
+        if (nombre) { evento.preventDefault(); cambiarDireccion(nombre); }
+      });
+      document.querySelectorAll('[data-dir]').forEach((boton) =>
+        boton.addEventListener('click', () => cambiarDireccion(boton.dataset.dir)));
+      document.getElementById('iniciar').addEventListener('click', iniciar);
+      document.getElementById('pausar').addEventListener('click', () => {
+        jugando = false;
+        if (!terminado) estado.textContent = 'Partida en pausa.';
+      });
+      document.getElementById('reiniciar').addEventListener('click', reiniciar);
+      reiniciar();
+      jugando = false;
+      estado.textContent = 'Pulsa Iniciar o una flecha para empezar.';
+      requestAnimationFrame(bucle);
+    })();
+  </script>
 </body>
 </html>

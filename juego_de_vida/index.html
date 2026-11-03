@@ -1,21 +1,146 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Juego de la Vida — Próximamente</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1e1e2e">
+  <title>Juego de la Vida — Juegos</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#1e1e2e; color:#eee;
-           display:flex; flex-direction:column; align-items:center;
-           justify-content:center; min-height:100vh; margin:0; text-align:center; }
-    h1 { margin-bottom:8px; }
-    p { color:#aaa; }
-    a { color:#8fa9ff; }
+    :root { color-scheme: dark; font-family: Arial, sans-serif; background: #1e1e2e; color: #eee; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 28px 16px; display: flex; flex-direction: column; align-items: center; }
+    h1 { margin: 0 0 6px; }
+    p { color: #aaa; text-align: center; }
+    .controles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+    button { border: 1px solid #565674; border-radius: 7px; background: #30304a; color: #eee; padding: 10px 14px; font-size: 1rem; cursor: pointer; touch-action: manipulation; }
+    button:hover { border-color: #9aaeff; }
+    button:focus-visible, a:focus-visible, canvas:focus-visible { outline: 3px solid #9aaeff; outline-offset: 2px; }
+    label { color: #aaa; display: flex; align-items: center; gap: 8px; }
+    select { background: #30304a; color: #eee; border: 1px solid #565674; border-radius: 7px; padding: 8px; }
+    canvas { width: min(94vw, 640px); height: auto; aspect-ratio: 8 / 5; border: 2px solid #494966; border-radius: 7px; background: #11111b; touch-action: none; }
+    #estado { min-height: 1.4em; }
+    .volver { margin-top: 16px; } a { color: #9aaeff; }
   </style>
 </head>
 <body>
   <h1>Juego de la Vida</h1>
-  <p>Este juego todavía no está terminado.</p>
-  <p><a href="../">← Volver al índice de juegos</a></p>
+  <p>Prepara un patrón en la cuadrícula y observa el autómata celular de Conway.</p>
+  <div class="controles">
+    <button id="iniciar" type="button">Iniciar</button>
+    <button id="paso" type="button">Un paso</button>
+    <button id="aleatorio" type="button">Aleatorio</button>
+    <button id="limpiar" type="button">Limpiar</button>
+    <label for="velocidad">Velocidad
+      <select id="velocidad">
+        <option value="500">Lenta</option>
+        <option value="250" selected>Normal</option>
+        <option value="100">Rápida</option>
+      </select>
+    </label>
+  </div>
+  <p id="estado" role="status" aria-live="polite">Generación 0. Haz clic en las celdas para preparar un patrón.</p>
+  <canvas id="rejilla" width="640" height="400" role="grid" tabindex="0"
+    aria-label="Cuadrícula del Juego de la Vida. Usa las flechas para mover el cursor y Espacio para cambiar una celda."></canvas>
+  <p>Haz clic en las celdas para activarlas. Con el teclado: flechas para mover · Espacio para cambiar.</p>
+  <p class="volver"><a href="../">← Volver al índice de juegos</a></p>
+  <script>
+    (() => {
+      const canvas = document.getElementById('rejilla');
+      const ctx = canvas.getContext('2d');
+      const columnas = 32, filas = 20;
+      const anchoCelda = canvas.width / columnas, altoCelda = canvas.height / filas;
+      let mundo = nuevoMundo(), generacion = 0, intervalo = null, cursor = { x: 0, y: 0 };
+      const estado = document.getElementById('estado');
+      const botonInicio = document.getElementById('iniciar');
+      function nuevoMundo() { return Array.from({ length: filas }, () => Array(columnas).fill(false)); }
+      function dibujar() {
+        ctx.fillStyle = '#11111b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let y = 0; y < filas; y++) for (let x = 0; x < columnas; x++) {
+          if (mundo[y][x]) {
+            ctx.fillStyle = '#a3e635';
+            ctx.fillRect(x * anchoCelda + 2, y * altoCelda + 2, anchoCelda - 4, altoCelda - 4);
+          }
+          ctx.strokeStyle = '#303047';
+          ctx.strokeRect(x * anchoCelda, y * altoCelda, anchoCelda, altoCelda);
+        }
+        ctx.strokeStyle = '#facc15'; ctx.lineWidth = 2;
+        ctx.strokeRect(cursor.x * anchoCelda + 1, cursor.y * altoCelda + 1, anchoCelda - 2, altoCelda - 2);
+        ctx.lineWidth = 1;
+      }
+      function actualizarEstado() {
+        const vivas = mundo.reduce((total, fila) => total + fila.filter(Boolean).length, 0);
+        estado.textContent = `Generación ${generacion}. ${vivas} ${vivas === 1 ? 'célula viva' : 'células vivas'}.`;
+      }
+      function paso() {
+        const siguiente = nuevoMundo();
+        for (let y = 0; y < filas; y++) for (let x = 0; x < columnas; x++) {
+          let vecinos = 0;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < filas && nx >= 0 && nx < columnas && mundo[ny][nx]) vecinos++;
+          }
+          siguiente[y][x] = mundo[y][x] ? vecinos === 2 || vecinos === 3 : vecinos === 3;
+        }
+        mundo = siguiente;
+        generacion++;
+        dibujar(); actualizarEstado();
+      }
+      function detener() {
+        if (intervalo !== null) clearInterval(intervalo);
+        intervalo = null;
+        botonInicio.textContent = 'Iniciar';
+      }
+      function iniciar() {
+        if (intervalo !== null) { detener(); return; }
+        intervalo = setInterval(paso, Number(document.getElementById('velocidad').value));
+        botonInicio.textContent = 'Pausar';
+      }
+      function alternar(x, y) {
+        mundo[y][x] = !mundo[y][x];
+        cursor = { x, y };
+        dibujar(); actualizarEstado();
+      }
+      function posicion(evento) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: Math.max(0, Math.min(columnas - 1, Math.floor((evento.clientX - rect.left) / rect.width * columnas))),
+          y: Math.max(0, Math.min(filas - 1, Math.floor((evento.clientY - rect.top) / rect.height * filas)))
+        };
+      }
+      canvas.addEventListener('pointerdown', (evento) => {
+        const celda = posicion(evento);
+        alternar(celda.x, celda.y);
+        canvas.focus();
+      });
+      canvas.addEventListener('keydown', (evento) => {
+        const movimientos = {
+          ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0]
+        };
+        if (movimientos[evento.key]) {
+          evento.preventDefault();
+          cursor.x = Math.max(0, Math.min(columnas - 1, cursor.x + movimientos[evento.key][0]));
+          cursor.y = Math.max(0, Math.min(filas - 1, cursor.y + movimientos[evento.key][1]));
+          dibujar();
+        } else if (evento.key === ' ') {
+          evento.preventDefault(); alternar(cursor.x, cursor.y);
+        }
+      });
+      botonInicio.addEventListener('click', iniciar);
+      document.getElementById('paso').addEventListener('click', paso);
+      document.getElementById('aleatorio').addEventListener('click', () => {
+        mundo = nuevoMundo();
+        for (let y = 0; y < filas; y++) for (let x = 0; x < columnas; x++) mundo[y][x] = Math.random() < .28;
+        generacion = 0; dibujar(); actualizarEstado();
+      });
+      document.getElementById('limpiar').addEventListener('click', () => {
+        detener(); mundo = nuevoMundo(); generacion = 0; dibujar(); actualizarEstado();
+      });
+      document.getElementById('velocidad').addEventListener('change', () => {
+        if (intervalo !== null) { detener(); iniciar(); }
+      });
+      dibujar(); actualizarEstado();
+    })();
+  </script>
 </body>
 </html>

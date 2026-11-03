@@ -94,7 +94,11 @@ tableroEl.addEventListener('click', (evento) => {
   const celda = evento.target.closest('.celda');
   if (!celda || partida.estado !== 'EN_CURSO') return;
 
-  partida = api.revelar(Number(celda.dataset.fila), Number(celda.dataset.columna));
+  const fila = Number(celda.dataset.fila);
+  const columna = Number(celda.dataset.columna);
+  if (partida.casillas[fila * partida.columnas + columna].estado !== 'OCULTA') return;
+
+  partida = api.revelar(fila, columna);
   arrancarRelojEnPrimeraJugada();
   pintar();
 });
@@ -116,12 +120,6 @@ function arrancarReloj() {
   pararReloj();
   segundos = 0;
   pintarCronometro();
-  reloj = setInterval(() => {
-    if (partida && partida.estado === 'EN_CURSO') {
-      segundos = Math.min(999, segundos + 1);
-      pintarCronometro();
-    }
-  }, 1000);
 }
 
 /** El reloj no empieza a correr hasta que no haces la primera jugada. */
@@ -131,6 +129,12 @@ function arrancarRelojEnPrimeraJugada() {
     yaJugo = true;
     segundos = 0;
     pintarCronometro();
+    reloj = setInterval(() => {
+      if (partida && partida.estado === 'EN_CURSO') {
+        segundos = Math.min(999, segundos + 1);
+        pintarCronometro();
+      }
+    }, 1000);
   }
 }
 
