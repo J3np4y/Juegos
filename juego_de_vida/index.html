@@ -11,48 +11,102 @@
     body { margin: 0; min-height: 100vh; padding: 28px 16px; display: flex; flex-direction: column; align-items: center; }
     h1 { margin: 0 0 6px; }
     p { color: #aaa; text-align: center; }
+    .configuracion { width: min(94vw, 640px); display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 16px 0; }
+    .grupo { display: grid; gap: 7px; padding: 14px; background: #2a2a3d; border: 1px solid #3a3a52; border-radius: 9px; }
+    .grupo h2 { font-size: 1rem; margin: 0; color: #eee; }
+    .grupo label { color: #aaa; display: grid; gap: 6px; }
     .controles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
     button { border: 1px solid #565674; border-radius: 7px; background: #30304a; color: #eee; padding: 10px 14px; font-size: 1rem; cursor: pointer; touch-action: manipulation; }
     button:hover { border-color: #9aaeff; }
-    button:focus-visible, a:focus-visible, canvas:focus-visible { outline: 3px solid #9aaeff; outline-offset: 2px; }
-    label { color: #aaa; display: flex; align-items: center; gap: 8px; }
+    button:focus-visible, a:focus-visible, canvas:focus-visible, select:focus-visible { outline: 3px solid #9aaeff; outline-offset: 2px; }
     select { background: #30304a; color: #eee; border: 1px solid #565674; border-radius: 7px; padding: 8px; }
-    canvas { width: min(94vw, 640px); height: auto; aspect-ratio: 8 / 5; border: 2px solid #494966; border-radius: 7px; background: #11111b; touch-action: none; }
+    canvas { width: min(94vw, 640px); height: auto; border: 2px solid #494966; border-radius: 7px; background: #11111b; touch-action: none; }
     #estado { min-height: 1.4em; }
     .volver { margin-top: 16px; } a { color: #9aaeff; }
   </style>
 </head>
 <body>
   <h1>Juego de la Vida</h1>
-  <p>Prepara un patrón en la cuadrícula y observa el autómata celular de Conway.</p>
-  <div class="controles">
-    <button id="iniciar" type="button">Iniciar</button>
-    <button id="paso" type="button">Un paso</button>
-    <button id="aleatorio" type="button">Aleatorio</button>
-    <button id="limpiar" type="button">Limpiar</button>
-    <label for="velocidad">Velocidad
-      <select id="velocidad">
-        <option value="500">Lenta</option>
-        <option value="250" selected>Normal</option>
-        <option value="100">Rápida</option>
-      </select>
-    </label>
-  </div>
-  <p id="estado" role="status" aria-live="polite">Generación 0. Haz clic en las celdas para preparar un patrón.</p>
+  <p>Elige un tablero, carga una plantilla o dibuja tu patrón y pulsa Empezar.</p>
+  <section class="configuracion" aria-label="Preparación de la partida">
+    <div class="grupo">
+      <h2>1. Elige el tablero</h2>
+      <label for="tamano">Tamaño de la cuadrícula
+        <select id="tamano">
+          <option value="16x10">Pequeño — 16 × 10</option>
+          <option value="32x20" selected>Mediano — 32 × 20</option>
+          <option value="48x30">Grande — 48 × 30</option>
+        </select>
+      </label>
+      <label for="plantilla">Plantilla
+        <select id="plantilla">
+          <option value="bloque">Bloque — 2 × 2 (quieto)</option>
+          <option value="parpadeo">Parpadeador — 3 × 1 (pequeña)</option>
+          <option value="planeador">Planeador — 3 × 3 (pequeña)</option>
+          <option value="pulsar">Pulsar — 13 × 13 (grande)</option>
+        </select>
+      </label>
+      <button id="cargar" type="button">Cargar plantilla</button>
+    </div>
+    <div class="grupo">
+      <h2>2. Ejecuta la partida</h2>
+      <div class="controles">
+        <button id="iniciar" type="button">Empezar</button>
+        <button id="paso" type="button">Avanzar un paso</button>
+        <button id="aleatorio" type="button">Patrón aleatorio</button>
+        <button id="limpiar" type="button">Limpiar tablero</button>
+      </div>
+      <label for="velocidad">Velocidad
+        <select id="velocidad">
+          <option value="500">Lenta</option>
+          <option value="250" selected>Normal</option>
+          <option value="100">Rápida</option>
+        </select>
+      </label>
+    </div>
+  </section>
+  <p id="estado" role="status" aria-live="polite">Generación 0. Carga una plantilla o haz clic en las celdas para preparar el patrón.</p>
   <canvas id="rejilla" width="640" height="400" role="grid" tabindex="0"
     aria-label="Cuadrícula del Juego de la Vida. Usa las flechas para mover el cursor y Espacio para cambiar una celda."></canvas>
-  <p>Haz clic en las celdas para activarlas. Con el teclado: flechas para mover · Espacio para cambiar.</p>
+  <p>Haz clic en las celdas para activarlas o desactivarlas. Con el teclado: flechas para mover · Espacio para cambiar. Pulsa Empezar para pausar y reanudar.</p>
   <p class="volver"><a href="../">← Volver al índice de juegos</a></p>
   <script>
     (() => {
       const canvas = document.getElementById('rejilla');
       const ctx = canvas.getContext('2d');
-      const columnas = 32, filas = 20;
-      const anchoCelda = canvas.width / columnas, altoCelda = canvas.height / filas;
+      const tamanoCelda = 20;
+      let columnas = 32, filas = 20;
+      let anchoCelda = canvas.width / columnas, altoCelda = canvas.height / filas;
       let mundo = nuevoMundo(), generacion = 0, intervalo = null, cursor = { x: 0, y: 0 };
       const estado = document.getElementById('estado');
       const botonInicio = document.getElementById('iniciar');
+      const plantillas = {
+        bloque: ['##', '##'],
+        parpadeo: ['###'],
+        planeador: ['.#.', '..#', '###'],
+        pulsar: [
+          '..###...###..',
+          '.............',
+          '#....#.#....#',
+          '#....#.#....#',
+          '#....#.#....#',
+          '..###...###..',
+          '.............',
+          '..###...###..',
+          '#....#.#....#',
+          '#....#.#....#',
+          '#....#.#....#',
+          '.............',
+          '..###...###..'
+        ]
+      };
       function nuevoMundo() { return Array.from({ length: filas }, () => Array(columnas).fill(false)); }
+      function actualizarTamano() {
+        canvas.width = columnas * tamanoCelda;
+        canvas.height = filas * tamanoCelda;
+        anchoCelda = tamanoCelda;
+        altoCelda = tamanoCelda;
+      }
       function dibujar() {
         ctx.fillStyle = '#11111b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         for (let y = 0; y < filas; y++) for (let x = 0; x < columnas; x++) {
@@ -89,15 +143,24 @@
       function detener() {
         if (intervalo !== null) clearInterval(intervalo);
         intervalo = null;
-        botonInicio.textContent = 'Iniciar';
+        botonInicio.textContent = 'Empezar';
       }
       function iniciar() {
         if (intervalo !== null) { detener(); return; }
         intervalo = setInterval(paso, Number(document.getElementById('velocidad').value));
         botonInicio.textContent = 'Pausar';
       }
+      function preparar() {
+        detener();
+        generacion = 0;
+      }
       function alternar(x, y) {
+        if (intervalo !== null) {
+          detener();
+          estado.textContent = 'Partida en pausa. Puedes seguir preparando el patrón.';
+        }
         mundo[y][x] = !mundo[y][x];
+        generacion = 0;
         cursor = { x, y };
         dibujar(); actualizarEstado();
       }
@@ -127,17 +190,48 @@
         }
       });
       botonInicio.addEventListener('click', iniciar);
-      document.getElementById('paso').addEventListener('click', paso);
+      document.getElementById('paso').addEventListener('click', () => {
+        preparar();
+        paso();
+      });
       document.getElementById('aleatorio').addEventListener('click', () => {
+        preparar();
         mundo = nuevoMundo();
         for (let y = 0; y < filas; y++) for (let x = 0; x < columnas; x++) mundo[y][x] = Math.random() < .28;
         generacion = 0; dibujar(); actualizarEstado();
       });
       document.getElementById('limpiar').addEventListener('click', () => {
-        detener(); mundo = nuevoMundo(); generacion = 0; dibujar(); actualizarEstado();
+        preparar(); mundo = nuevoMundo(); dibujar(); actualizarEstado();
+      });
+      document.getElementById('cargar').addEventListener('click', () => {
+        preparar();
+        mundo = nuevoMundo();
+        const patron = plantillas[document.getElementById('plantilla').value];
+        const alto = patron.length, ancho = patron[0].length;
+        if (ancho > columnas || alto > filas) {
+          estado.textContent = `La plantilla no cabe en este tablero (${ancho} × ${alto}). Elige un tamaño mayor.`;
+          return;
+        }
+        const inicioX = Math.floor((columnas - ancho) / 2);
+        const inicioY = Math.floor((filas - alto) / 2);
+        for (let y = 0; y < alto; y++) for (let x = 0; x < ancho; x++) {
+          mundo[inicioY + y][inicioX + x] = patron[y][x] === '#';
+        }
+        cursor = { x: inicioX + Math.floor(ancho / 2), y: inicioY + Math.floor(alto / 2) };
+        dibujar(); actualizarEstado();
+      });
+      document.getElementById('tamano').addEventListener('change', (evento) => {
+        preparar();
+        [columnas, filas] = evento.target.value.split('x').map(Number);
+        cursor = { x: Math.floor(columnas / 2), y: Math.floor(filas / 2) };
+        mundo = nuevoMundo();
+        actualizarTamano(); dibujar(); actualizarEstado();
       });
       document.getElementById('velocidad').addEventListener('change', () => {
-        if (intervalo !== null) { detener(); iniciar(); }
+        if (intervalo !== null) {
+          detener();
+          iniciar();
+        }
       });
       dibujar(); actualizarEstado();
     })();
